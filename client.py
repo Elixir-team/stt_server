@@ -5,18 +5,16 @@ import wave
 
 # Параметры записи
 SAMPLE_RATE = 16000  # Частота дискретизации
-CHUNK_DURATION = 2  # Длина чанка в секундах
-OVERLAP = 1  # Перекрытие в секундах
+DURATION = 3  # Длина чанка в секундах
 
-SERVER_URL = "http://77.104.167.149:55244/transcribe/"  # Адрес сервера
-#SERVER_URL = "http://localhost:8000/transcribe/"  # Адрес сервера
+SERVER_URL = "https://72mp1d893c4wo6-8080.proxy.runpod.net/stt/transcribe"  # Адрес сервера
+#SERVER_URL = "http://localhost:8080/stt/transcribe"  # Адрес сервера
 LANGUAGE = "ru"  # Язык распознавания
 
 def record_audio_chunk():
     """Записывает аудио-чанк с перекрытием"""
-    duration = CHUNK_DURATION + OVERLAP
-    print(f"Запись {duration} секунд аудио...")
-    audio = sd.rec(int(duration * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype='int16')
+    print(f"Запись {DURATION} секунд аудио...")
+    audio = sd.rec(int(DURATION * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype='int16')
     sd.wait()
     return audio
 
@@ -50,7 +48,7 @@ def main():
         start_time = time.time()
         response = send_audio_to_server(wav_bytes)
         print("Время выполнения отправки:", time.time() - start_time, "секунд")
-        print("Ответ от сервера:", response.get("text", response.get("error", "Ошибка")))
+        print("Ответ от сервера:", response.get("result"), response.get("error", "Ошибка"))
 
         time.sleep(1)  # Учитываем перекрытие
 
