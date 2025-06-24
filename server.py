@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from http.client import HTTPException
 
 from fastapi import FastAPI, UploadFile, File, Form
@@ -20,7 +21,6 @@ parser.add_argument("--model", type=str, default="turbo", help="Whisper model ty
 parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host")
 parser.add_argument("--port", type=int, default=8080, help="Server port")
 args = parser.parse_args()
-
 
 print("Initialize whisper:", args.model)
 model = whisper.load_model(args.model)
@@ -59,19 +59,30 @@ def filter_speech(transcription: str) -> str:
     return cleaned_transcription
 
 
+def write_logs(time, logs):
+    print("trinscribed by", time, "seconds")
+    print(logs)
+    if time > 3.0:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("logs.txt", "a") as f:
+            result = now + ": transcribed by " + str(time) + " seconds\n"
+            f.write(result)
+
+
 @app.post("/stt/transcribe")
 async def rest_endpoint(language: str = Form(...), file: UploadFile = File(...)):
     audio_array = await get_audio_as_numpy(file)
 
-    if len(audio_array) > SAMPLE_RATE * 60:  # 30 секунд
+    if len(audio_array) > SAMPLE_RATE * 60:
         raise HTTPException(status_code=400, detail="Audio too long")
 
     start_time = time.time()
     result = model.transcribe(audio_array, language=language, temperature=0.0)
-    print("trinscribed from", time.time() - start_time, "seconds")
 
     text = filter_speech(result["text"])
-    print(result)
+
+    write_logs(time.time() - start_time, text)
+
     return {"result": text}
 
 
