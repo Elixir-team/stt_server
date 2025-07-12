@@ -1,3 +1,5 @@
+import os
+import tempfile
 import time
 from datetime import datetime
 from http.client import HTTPException
@@ -26,31 +28,17 @@ print("Initialize whisper:", args.model)
 model = whisper.load_model(args.model)
 print("Whisper initialized on device:", model.device)
 
-
-def is_wav_file(data: bytes) -> bool:
-    if len(data) < 12:
-        return False
-
-    riff, size, wave = struct.unpack('<4sI4s', data[:12])
-
-    return riff == b'RIFF' and wave == b'WAVE'
-
-
-def format_bytes_to_np_array(data: bytes):
-    return np.frombuffer(data, dtype=np.int16).flatten().astype(np.float32) / 32768.0
-
-
 async def get_audio_as_numpy(file: UploadFile):
-    audio_bytes = await file.read()
-    await file.close()
+    suffix = os.path.splitext(file.filename)[1]
 
-    if is_wav_file(audio_bytes):
-        audio_stream = BytesIO(audio_bytes)
-        with wave.open(audio_stream, 'rb') as wf:
-            audio_bytes = wf.readframes(wf.getnframes())
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
 
-    return format_bytes_to_np_array(audio_bytes)
+    audio = whisper.load_audio(tmp_path)
+    os.unlink(tmp_path)
 
+    return audio
 
 def filter_speech(transcription: str) -> str:
     transcription = transcription.strip()
