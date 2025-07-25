@@ -11,8 +11,9 @@ import re
 from io import BytesIO
 import numpy as np
 import wave
-import struct
 import argparse
+
+from utils import convert_audio_as_numpy_array
 
 SAMPLE_RATE = 16000
 
@@ -28,17 +29,6 @@ print("Initialize whisper:", args.model)
 model = whisper.load_model(args.model)
 print("Whisper initialized on device:", model.device)
 
-async def get_audio_as_numpy(file: UploadFile):
-    suffix = os.path.splitext(file.filename)[1]
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(await file.read())
-        tmp_path = tmp.name
-
-    audio = whisper.load_audio(tmp_path)
-    os.unlink(tmp_path)
-
-    return audio
 
 def filter_speech(transcription: str) -> str:
     transcription = transcription.strip()
@@ -59,7 +49,7 @@ def write_logs(time, logs):
 
 @app.post("/stt/transcribe")
 async def rest_endpoint(language: str = Form(...), file: UploadFile = File(...)):
-    audio_array = await get_audio_as_numpy(file)
+    audio_array = await convert_audio_as_numpy_array(file)
 
     if len(audio_array) > SAMPLE_RATE * 60:
         raise HTTPException(status_code=400, detail="Audio too long")
