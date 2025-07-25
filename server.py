@@ -1,3 +1,5 @@
+import os
+import tempfile
 import time
 from datetime import datetime
 from http.client import HTTPException
@@ -9,8 +11,9 @@ import re
 from io import BytesIO
 import numpy as np
 import wave
-import struct
 import argparse
+
+from utils import convert_audio_as_numpy_array
 
 SAMPLE_RATE = 16000
 
@@ -25,31 +28,6 @@ args = parser.parse_args()
 print("Initialize whisper:", args.model)
 model = whisper.load_model(args.model)
 print("Whisper initialized on device:", model.device)
-
-
-def is_wav_file(data: bytes) -> bool:
-    if len(data) < 12:
-        return False
-
-    riff, size, wave = struct.unpack('<4sI4s', data[:12])
-
-    return riff == b'RIFF' and wave == b'WAVE'
-
-
-def format_bytes_to_np_array(data: bytes):
-    return np.frombuffer(data, dtype=np.int16).flatten().astype(np.float32) / 32768.0
-
-
-async def get_audio_as_numpy(file: UploadFile):
-    audio_bytes = await file.read()
-    await file.close()
-
-    if is_wav_file(audio_bytes):
-        audio_stream = BytesIO(audio_bytes)
-        with wave.open(audio_stream, 'rb') as wf:
-            audio_bytes = wf.readframes(wf.getnframes())
-
-    return format_bytes_to_np_array(audio_bytes)
 
 
 def filter_speech(transcription: str) -> str:
@@ -71,7 +49,7 @@ def write_logs(time, logs):
 
 @app.post("/stt/transcribe")
 async def rest_endpoint(language: str = Form(...), file: UploadFile = File(...)):
-    audio_array = await get_audio_as_numpy(file)
+    audio_array = await convert_audio_as_numpy_array(file)
 
     if len(audio_array) > SAMPLE_RATE * 60:
         raise HTTPException(status_code=400, detail="Audio too long")
