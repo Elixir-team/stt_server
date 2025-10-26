@@ -1,0 +1,7 @@
+numpy~=1.26.4
+openai-whisper~=20240930
+fastapi~=0.115.12
+sounddevice~=0.5.1
+requests~=2.32.3
+pydub~=0.25.1
+uvicorn~=0.34.2
