@@ -56,6 +56,7 @@ Backend можно оставить как есть: после деплоя н�
 - в рантайме больше нет `pip install` и `git pull`
 - есть `Dockerfile` для деплоя
 - Whisper заранее загружается в image во время `docker build`
+- для dev по умолчанию используется модель `tiny`
 
 Это значит, что image должен приезжать в RunPod уже подготовленным, а не скачивать зависимости и модель при каждом старте.
 
@@ -95,14 +96,14 @@ Backend можно оставить как есть: после деплоя н�
 ## Переменные окружения
 
 - `PORT=8080`
-- `WHISPER_MODEL=turbo`
+- `WHISPER_MODEL=tiny`
 - `MAX_AUDIO_SECONDS=60`
 - `SLOW_REQUEST_SECONDS=3.0`
 
 ## Сборка image
 
 ```bash
-docker build --platform linux/amd64 --build-arg WHISPER_MODEL=turbo -t YOUR_REGISTRY/stt-serverless:dev .
+docker build --platform linux/amd64 --build-arg WHISPER_MODEL=tiny -t YOUR_REGISTRY/stt-serverless:dev .
 docker push YOUR_REGISTRY/stt-serverless:dev
 ```
 
@@ -116,6 +117,9 @@ docker push YOUR_REGISTRY/stt-serverless:dev
 
 Этот image рассчитан на то, что Whisper уже запечен внутрь image во время build.
 Для Serverless это правильный подход, потому что не нужно скачивать модель при каждом cold start.
+
+Для dev по умолчанию используется `tiny`.
+Для production нужно переключить `WHISPER_MODEL` на `turbo`.
 
 Ссылка:
 

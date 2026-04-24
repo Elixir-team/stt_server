@@ -18,7 +18,7 @@ DEFAULT_SLOW_REQUEST_SECONDS = 3.0
 app = FastAPI()
 
 parser = argparse.ArgumentParser(description="Speech-to-Text Server")
-parser.add_argument("--model", type=str, default=os.getenv("WHISPER_MODEL", "turbo"), help="Whisper model type")
+parser.add_argument("--model", type=str, default=os.getenv("WHISPER_MODEL", "tiny"), help="Whisper model type")
 parser.add_argument("--host", type=str, default=os.getenv("HOST", "0.0.0.0"), help="Server host")
 parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8080")), help="Server port")
 parser.add_argument(
