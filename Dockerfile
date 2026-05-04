@@ -1,6 +1,6 @@
 ﻿FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
-ARG WHISPER_MODEL=tiny
+ARG WHISPER_MODEL=turbo
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
