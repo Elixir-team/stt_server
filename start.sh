@@ -1,13 +1,12 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if [ -f "${SCRIPT_DIR}/requirements.txt" ]; then
-    pip install -r "${SCRIPT_DIR}/requirements.txt"
-fi
-
 cd "$SCRIPT_DIR"
-echo "🔄 Pulling latest changes from origin/master..."
-git pull origin master
+
+python server.py \
+  --host "${HOST:-0.0.0.0}" \
+  --port "${PORT:-8080}" \
+  --model "${WHISPER_MODEL:-turbo}" \
+  --max-audio-seconds "${MAX_AUDIO_SECONDS:-60}"

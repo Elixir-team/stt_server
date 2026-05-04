@@ -1,0 +1,10 @@
+.git
+.idea
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+client.py
+requirements-client.txt
+logs.txt
