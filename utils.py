@@ -3,7 +3,7 @@ import tempfile
 
 import numpy as np
 from fastapi import UploadFile
-import whisper
+from faster_whisper.audio import decode_audio
 
 CONTENT_TYPE_SUFFIXES = {
     "audio/flac": ".flac",
@@ -46,7 +46,7 @@ async def convert_audio_as_numpy_array(file: UploadFile):
             tmp.write(audio_bytes)
             tmp_path = tmp.name
 
-        return whisper.load_audio(tmp_path)
+        return decode_audio(tmp_path, sampling_rate=16000)
     except Exception:
         return format_bytes_to_np_array(audio_bytes)
     finally:
