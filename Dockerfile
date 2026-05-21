@@ -1,4 +1,4 @@
-﻿FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+﻿FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 ARG WHISPER_MODEL=turbo
 
@@ -36,19 +36,16 @@ COPY requirements.txt ./
 
 RUN python -m pip install --upgrade pip \
     && python -m pip install "setuptools<81" wheel \
-    && python -m pip install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124 \
-    && python -m pip install --no-build-isolation -r requirements.txt
+    && python -m pip install -r requirements.txt
 
 COPY server.py utils.py start.sh ./
 
 RUN chmod +x /app/start.sh
 
 RUN mkdir -p "${WHISPER_CACHE_DIR}" \
-    && python -c "import os, whisper; whisper.load_model(os.environ['WHISPER_MODEL'], download_root=os.environ['WHISPER_CACHE_DIR'])"
+    && python -c "import os; from faster_whisper.utils import download_model; download_model(os.environ['WHISPER_MODEL'], cache_dir=os.environ['WHISPER_CACHE_DIR'])"
 
 EXPOSE 8080
 
 CMD ["./start.sh"]
-
-
 

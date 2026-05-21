@@ -1,11 +1,14 @@
 import argparse
+import copy
+import logging
 import os
 import re
 import time
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import ctranslate2
+from faster_whisper import WhisperModel
 import uvicorn
-import whisper
 
 from utils import convert_audio_as_numpy_array
 
@@ -29,6 +32,26 @@ args = parser.parse_args()
 whisper_cache_dir = os.getenv("WHISPER_CACHE_DIR")
 
 
+class HealthCheckAccessFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return '"GET /ping HTTP/1.1" 200' not in message and '"GET /ping HTTP/1.1" 204' not in message
+
+
+def build_log_config():
+    log_config = copy.deepcopy(uvicorn.config.LOGGING_CONFIG)
+    access_logger = log_config["loggers"].get("uvicorn.access")
+    if access_logger is None:
+        return log_config
+
+    log_config.setdefault("filters", {})
+    log_config["filters"]["health_check_access_filter"] = {
+        "()": HealthCheckAccessFilter,
+    }
+    access_logger["filters"] = ["health_check_access_filter"]
+    return log_config
+
+
 def filter_speech(transcription: str) -> str:
     transcription = transcription.strip()
     cleaned_transcription = re.sub(r"\[.*?\]|\(.*?\)", "", transcription)
@@ -36,10 +59,25 @@ def filter_speech(transcription: str) -> str:
     return cleaned_transcription
 
 
-print("Initialize whisper:", args.model)
-model = whisper.load_model(args.model, download_root=whisper_cache_dir)
-model_device = str(model.device)
-print("Whisper initialized on device:", model_device)
+def resolve_device() -> tuple[str, str]:
+    try:
+        if ctranslate2.get_cuda_device_count() > 0:
+            return "cuda", "float16"
+    except Exception:
+        pass
+    return "cpu", "int8"
+
+
+model_device, compute_type = resolve_device()
+
+print("Initialize faster-whisper:", args.model)
+model = WhisperModel(
+    args.model,
+    device=model_device,
+    compute_type=compute_type,
+    download_root=whisper_cache_dir,
+)
+print("Faster-whisper initialized on device:", model_device)
 
 
 @app.get("/ping")
@@ -55,8 +93,8 @@ async def rest_endpoint(language: str = Form(...), file: UploadFile = File(...))
         raise HTTPException(status_code=400, detail="Audio too long")
 
     start_time = time.time()
-    result = model.transcribe(audio_array, language=language, temperature=0.0)
-    text = filter_speech(result["text"])
+    segments, _ = model.transcribe(audio_array, language=language, temperature=0.0)
+    text = filter_speech(" ".join(segment.text for segment in segments))
 
     print("transcribed by", time.time() - start_time, "seconds")
     print(text)
@@ -65,4 +103,4 @@ async def rest_endpoint(language: str = Form(...), file: UploadFile = File(...))
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host=args.host, port=args.port, log_config=build_log_config())
