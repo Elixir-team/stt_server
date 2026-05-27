@@ -4,11 +4,33 @@ services:
     container_name: elixir-stt
     restart: unless-stopped
     runtime: nvidia
+
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-    ports:
-      - "8001:8080"
+
+    expose:
+      - "8080"
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.elixir-stt.rule=Host(`stt.elixirlab.io`)"
+      - "traefik.http.routers.elixir-stt.entrypoints=websecure"
+      - "traefik.http.routers.elixir-stt.tls=true"
+      - "traefik.http.routers.elixir-stt.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.elixir-stt.middlewares=stt-allowlist,stt-ratelimit,stt-buffer"
+
+      - "traefik.http.middlewares.stt-allowlist.ipallowlist.sourcerange=91.108.121.87/32,72.62.92.110/32"
+
+      - "traefik.http.middlewares.stt-ratelimit.ratelimit.average=20"
+      - "traefik.http.middlewares.stt-ratelimit.ratelimit.burst=40"
+
+      - "traefik.http.middlewares.stt-buffer.buffering.maxRequestBodyBytes=52428800"
+
+      - "traefik.http.services.elixir-stt.loadbalancer.server.port=8080"
+
     healthcheck:
       test:
         [
@@ -21,8 +43,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
     logging:
       driver: json-file
       options:
         max-size: "50m"
         max-file: "5"
+
+    networks:
+      - elixir-gpu-net
+
+networks:
+  elixir-gpu-net:
+    external: true
