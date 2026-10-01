@@ -97,7 +97,7 @@ Backend можно оставить как есть: после деплоя н�
 
 - `PORT=8080`
 - `WHISPER_MODEL=tiny`
-- `MAX_AUDIO_SECONDS=60`
+- `MAX_AUDIO_SECONDS=180`
 - `SLOW_REQUEST_SECONDS=3.0`
 
 ## Сборка image
