@@ -13,7 +13,7 @@ import uvicorn
 from utils import convert_audio_as_numpy_array
 
 SAMPLE_RATE = 16000
-DEFAULT_MAX_AUDIO_SECONDS = 60
+DEFAULT_MAX_AUDIO_SECONDS = 180
 
 app = FastAPI()
 
